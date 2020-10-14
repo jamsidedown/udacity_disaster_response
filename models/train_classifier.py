@@ -1,10 +1,12 @@
 import re
 import sqlite3
+from typing import List, Tuple
 
 import nltk
 from nltk import word_tokenize, WordNetLemmatizer
 import numpy as np
 import pandas as pd
+import pickle
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.model_selection import train_test_split, GridSearchCV
@@ -19,61 +21,86 @@ nltk.download(['punkt', 'wordnet'])
 DATABASE_PATH = 'data/disaster_response.db'
 MODEL_PATH = 'models/classifier.pkl'
 
+URL_REGEX = re.compile('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
 
-def load_data():
+
+def load_data() -> Tuple[pd.Series, pd.Series, List[str]]:
     conn = sqlite3.connect(DATABASE_PATH)
     df = pd.read_sql_query("SELECT * from messages", conn)
 
-    X = df['message']
-    Y = df[df.columns[4:]]
-    cat_names = Y.columns.values
+    x = df['message']
+    y = df[df.columns[4:]]
 
-    return X, Y, cat_names
-
-
-def tokenize(text):
-    pass
+    return x, y
 
 
-def build_model():
-    pass
+def tokenize(text: str) -> List[str]:
+    for url in re.findall(URL_REGEX, text):
+        text = text.replace(url, 'urlplaceholder')
+
+    tokens = word_tokenize(text)
+
+    lemmatizer = WordNetLemmatizer()
+    return [lemmatizer.lemmatize(token).casefold().strip() for token in tokens]
 
 
-def evaluate_model(model, X_test, Y_test, category_names):
-    pass
+def build_model() -> GridSearchCV:
+    pipeline = Pipeline([
+        ('vect', CountVectorizer(tokenizer=tokenize)),
+        ('tfidf', TfidfTransformer()),
+        ('class', MultiOutputClassifier(KNeighborsClassifier()))
+    ])
+
+    parameters = {
+        'vect__ngram_range': ((1, 1), (1, 2)),
+        'vect__max_df': (0.5, 0.75, 1.0),
+        'vect__max_features': (None, 5000, 10000),
+        'tfidf__use_idf': (True, False),
+    }
+
+    return GridSearchCV(pipeline, param_grid=parameters)
 
 
-def save_model(model, model_filepath):
-    pass
+def display_results(model: GridSearchCV, y_test: pd.Series, y_pred: pd.DataFrame) -> None:
+    labels = np.unique(y_pred)
+    confusion_mat = confusion_matrix(y_test, y_pred, labels=labels)
+    accuracy = (y_pred == y_test).mean()
+
+    print(f'{labels=}')
+    print(f'{confusion_mat=}')
+    print(f'{accuracy=}')
+    print(f'{model.best_params_=}')
+
+
+def evaluate_model(model: GridSearchCV, x_test: pd.Series, y_test: pd.Series) -> None:
+    y_pred = pd.DataFrame(model.predict(x_test), columns=y_test.columns)
+    display_results(model, y_test, y_pred)
+
+
+def save_model(model: GridSearchCV) -> None:
+    pickle.dump(model, open(MODEL_PATH, "wb"))
 
 
 def main():
     print('==== Loading data ====')
     print(f'DATABASE: {DATABASE_PATH}')
-    X, Y, category_names = load_data()
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
-    print('Data loaded')
-
-    print(X.head())
-    print(Y.head())
-    print(category_names)
+    x, y = load_data()
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
 
     print('==== Building model ====')
     model = build_model()
-    print('Model built')
 
     print('==== Training model ====')
-    model.fit(X_train, Y_train)
-    print('Model trained')
+    model.fit(x_train, y_train)
 
     print('==== Evaluating model ====')
-    evaluate_model(model, X_test, Y_test, category_names)
-    print('Model evaluated')
+    evaluate_model(model, x_test, y_test)
 
     print('==== Saving model ====')
     print(f'MODEL: {MODEL_PATH}')
-    save_model(model, MODEL_PATH)
-    print('Model saved')
+    save_model(model)
+
+    print('==== Finished ====')
 
 
 if __name__ == '__main__':

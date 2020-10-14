@@ -40,16 +40,15 @@ def main():
     print(f'MESSAGES: {MESSAGES_PATH}')
     print(f'CATEGORIES: {CATEGORIES_PATH}')
     df = load_data()
-    print('Data loaded')
 
     print('==== Cleaning data ====')
     df = clean_data(df)
-    print('Data cleaned')
 
     print('==== Saving database ====')
     print(f'DATABASE: {DATABASE_PATH}')
     save_data(df)
-    print('Data saved')
+
+    print('==== Finished ====')
 
 
 if __name__ == '__main__':
