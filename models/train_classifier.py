@@ -3,13 +3,17 @@ import sqlite3
 
 import nltk
 from nltk import word_tokenize, WordNetLemmatizer
+import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from sklearn.metrics import classification_report
-from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
+
+
+nltk.download(['punkt', 'wordnet'])
 
 
 DATABASE_PATH = 'data/disaster_response.db'
@@ -17,7 +21,14 @@ MODEL_PATH = 'models/classifier.pkl'
 
 
 def load_data():
-    pass
+    conn = sqlite3.connect(DATABASE_PATH)
+    df = pd.read_sql_query("SELECT * from messages", conn)
+
+    X = df['message']
+    Y = df[df.columns[4:]]
+    cat_names = Y.columns.values
+
+    return X, Y, cat_names
 
 
 def tokenize(text):
@@ -42,6 +53,10 @@ def main():
     X, Y, category_names = load_data()
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
     print('Data loaded')
+
+    print(X.head())
+    print(Y.head())
+    print(category_names)
 
     print('==== Building model ====')
     model = build_model()
