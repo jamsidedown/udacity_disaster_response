@@ -2,6 +2,5 @@ numpy
 pandas
 nltk
 sklearn
-pickle-
 flask
 plotly
