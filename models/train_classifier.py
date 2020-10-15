@@ -1,14 +1,14 @@
+import pickle
 import re
 import sqlite3
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import nltk
 from nltk import word_tokenize, WordNetLemmatizer
 import numpy as np
 import pandas as pd
-import pickle
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.neighbors import KNeighborsClassifier
@@ -20,6 +20,7 @@ nltk.download(['punkt', 'wordnet'])
 
 DATABASE_PATH = 'data/disaster_response.db'
 MODEL_PATH = 'models/classifier.pkl'
+TRAIN_TEST_DATA_PATH = 'models/training_testing_data.pkl'
 
 URL_REGEX = re.compile('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
 
@@ -44,7 +45,7 @@ def tokenize(text: str) -> List[str]:
     return [lemmatizer.lemmatize(token).casefold().strip() for token in tokens]
 
 
-def build_model() -> GridSearchCV:
+def build_model() -> Union[Pipeline, GridSearchCV]:
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize)),
         ('tfidf', TfidfTransformer()),
@@ -61,24 +62,29 @@ def build_model() -> GridSearchCV:
     return GridSearchCV(pipeline, param_grid=parameters)
 
 
-def display_results(model: GridSearchCV, y_test: pd.Series, y_pred: pd.DataFrame) -> None:
-    labels = np.unique(y_pred)
-    confusion_mat = confusion_matrix(y_test, y_pred, labels=labels)
-    accuracy = (y_pred == y_test).mean()
+def display_results(model: GridSearchCV, y_test: pd.Series, y_pred: np.array) -> None:
+    y_pred_df = pd.DataFrame(y_pred, columns=y_test.columns)
 
-    print(f'{labels=}')
-    print(f'{confusion_mat=}')
+    for column in y_test.columns.values:
+        print(f'column {column}')
+        print(classification_report(y_test[column], y_pred_df[column]))
+    accuracy = (y_pred == y_test).mean().mean()
+
     print(f'{accuracy=}')
     print(f'{model.best_params_=}')
 
 
 def evaluate_model(model: GridSearchCV, x_test: pd.Series, y_test: pd.Series) -> None:
-    y_pred = pd.DataFrame(model.predict(x_test), columns=y_test.columns)
+    y_pred = model.predict(x_test)
     display_results(model, y_test, y_pred)
 
 
 def save_model(model: GridSearchCV) -> None:
-    pickle.dump(model, open(MODEL_PATH, "wb"))
+    pickle.dump(model, open(MODEL_PATH, 'wb'))
+
+
+def load_model() -> GridSearchCV:
+    return pickle.load(open(MODEL_PATH, 'rb'))
 
 
 def main():
