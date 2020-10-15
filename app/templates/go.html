@@ -10,17 +10,23 @@
 {% block summary %}
     <hr />
     <h4 class="text-center">Summary</h4>
-    <p class="text-center"><i>{{classification_summary}}</i></p>
+    <p class="text-center"><i>{{summary}}</i></p>
 {% endblock %}
 
 {% block content %}
-    <ul class="list-group">
-        {% for category, classification in classification_result.items() %}
-            {% if classification == 1 %}
-                <li class="list-group-item list-group-item-success text-center">{{category}}</li>
-            {% else %}
-                <li class="list-group-item list-group-item-dark text-center">{{category}}</li>
-            {% endif %}
-        {% endfor %}
-    </ul>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            {% for row in table %}
+                <tr>
+                    {% for (column, label) in row %}
+                        {% if label %}
+                            <td class="success">{{column}}</td>
+                        {% else %}
+                            <td>{{column}}</td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 {% endblock %}

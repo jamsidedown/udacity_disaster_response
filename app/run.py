@@ -1,4 +1,5 @@
 import json
+import math
 
 from flask import Flask, render_template, request, jsonify
 import pandas as pd
@@ -61,25 +62,28 @@ def index():
 def go():
     query = request.args.get('query', '')
 
-    columns = [column.replace('_', ' ').title() for column in df.columns[4:].values]
+    class_columns = [column.replace('_', ' ').title() for column in df.columns[4:].values]
+    class_labels = model.predict([query])[0]
+    class_summary = ', '.join([class_columns[i] for i in range(len(class_columns)) if class_labels[i]])
 
-    print(columns)
+    data = []
+    number_cols = 4
 
-    classification_labels = model.predict([query])[0]
-
-    print(classification_labels)
-
-    classification_results = dict(zip(columns, classification_labels))
-
-    print(classification_results.items())
-
-    classification_summary = ', '.join([key for key, value in classification_results.items() if value])
+    for i in range(math.ceil(len(class_columns) / number_cols)):
+        row = []
+        for j in range(number_cols):
+            k = (i * number_cols) + j
+            if k < len(class_columns):
+                row.append((class_columns[k], class_labels[k]))
+            else:
+                row.append(('', 0))
+        data.append(row)
 
     return render_template(
         'go.html',
         query=query,
-        classification_result=classification_results,
-        classification_summary=classification_summary
+        summary=class_summary,
+        table=data
     )
 
 
