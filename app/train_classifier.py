@@ -69,7 +69,7 @@ def main_prod():
     x, y = load_data()
 
     print('==== Building model ====')
-    model = build_model()
+    model = build_model_prod()
 
     print('==== Training model ====')
     model.fit(x, y)
