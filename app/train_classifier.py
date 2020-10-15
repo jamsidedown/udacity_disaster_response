@@ -21,6 +21,14 @@ def load_data() -> Tuple[pd.Series, pd.Series, List[str]]:
     return x, y
 
 
+def build_model_prod() -> Pipeline:
+     return Pipeline([
+        ('vect', CountVectorizer(tokenizer=tokenize, max_df=0.5, max_features=None, ngram_range=(1, 1))),
+        ('tfidf', TfidfTransformer(use_idf=True)),
+        ('class', MultiOutputClassifier(KNeighborsClassifier()))
+    ])
+
+
 def build_model() -> Union[Pipeline, GridSearchCV]:
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize)),
@@ -38,7 +46,7 @@ def build_model() -> Union[Pipeline, GridSearchCV]:
     return GridSearchCV(pipeline, param_grid=parameters)
 
 
-def display_results(model: GridSearchCV, y_test: pd.Series, y_pred: np.array) -> None:
+def display_results(model: Union[Pipeline, GridSearchCV], y_test: pd.Series, y_pred: np.array) -> None:
     y_pred_df = pd.DataFrame(y_pred, columns=y_test.columns)
 
     for column in y_test.columns.values:
@@ -53,6 +61,24 @@ def display_results(model: GridSearchCV, y_test: pd.Series, y_pred: np.array) ->
 def evaluate_model(model: GridSearchCV, x_test: pd.Series, y_test: pd.Series) -> None:
     y_pred = model.predict(x_test)
     display_results(model, y_test, y_pred)
+
+
+def main_prod():
+    print('==== Loading data ====')
+    print(f'DATABASE: {DATABASE_PATH}')
+    x, y = load_data()
+
+    print('==== Building model ====')
+    model = build_model()
+
+    print('==== Training model ====')
+    model.fit(x, y)
+
+    print('==== Saving model ====')
+    print(f'MODEL: {MODEL_PATH}')
+    save_pickle(model)
+
+    print('==== Finished ====')
 
 
 def main():
@@ -78,4 +104,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main_prod()
