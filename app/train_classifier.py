@@ -1,10 +1,5 @@
-import pickle
-import re
-import sqlite3
 from typing import List, Tuple, Union
 
-import nltk
-from nltk import word_tokenize, WordNetLemmatizer
 import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
@@ -14,35 +9,16 @@ from sklearn.multioutput import MultiOutputClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
 
-
-nltk.download(['punkt', 'wordnet'])
-
-
-DATABASE_PATH = 'data/disaster_response.db'
-MODEL_PATH = 'models/classifier.pkl'
-TRAIN_TEST_DATA_PATH = 'models/training_testing_data.pkl'
-
-URL_REGEX = re.compile('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
+from .utils import DATABASE_PATH, MODEL_PATH, load_dataframe, tokenize, save_pickle
 
 
 def load_data() -> Tuple[pd.Series, pd.Series, List[str]]:
-    conn = sqlite3.connect(DATABASE_PATH)
-    df = pd.read_sql_query("SELECT * from messages", conn)
+    df = load_dataframe()
 
     x = df['message']
     y = df[df.columns[4:]]
 
     return x, y
-
-
-def tokenize(text: str) -> List[str]:
-    for url in re.findall(URL_REGEX, text):
-        text = text.replace(url, 'urlplaceholder')
-
-    tokens = word_tokenize(text)
-
-    lemmatizer = WordNetLemmatizer()
-    return [lemmatizer.lemmatize(token).casefold().strip() for token in tokens]
 
 
 def build_model() -> Union[Pipeline, GridSearchCV]:
@@ -79,14 +55,6 @@ def evaluate_model(model: GridSearchCV, x_test: pd.Series, y_test: pd.Series) ->
     display_results(model, y_test, y_pred)
 
 
-def save_model(model: GridSearchCV) -> None:
-    pickle.dump(model, open(MODEL_PATH, 'wb'))
-
-
-def load_model() -> GridSearchCV:
-    return pickle.load(open(MODEL_PATH, 'rb'))
-
-
 def main():
     print('==== Loading data ====')
     print(f'DATABASE: {DATABASE_PATH}')
@@ -104,7 +72,7 @@ def main():
 
     print('==== Saving model ====')
     print(f'MODEL: {MODEL_PATH}')
-    save_model(model)
+    save_pickle(model)
 
     print('==== Finished ====')
 

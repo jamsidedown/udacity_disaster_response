@@ -1,12 +1,8 @@
 import sqlite3
 
 import pandas as pd
-from pandas.io import sql
 
-
-CATEGORIES_PATH = 'data/disaster_categories.csv'
-MESSAGES_PATH = 'data/disaster_messages.csv'
-DATABASE_PATH = 'data/disaster_response.db'
+from .utils import MESSAGES_PATH, CATEGORIES_PATH, DATABASE_PATH, save_dataframe
 
 
 def load_data() -> pd.DataFrame:
@@ -30,11 +26,6 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     return df.drop_duplicates()
 
 
-def save_data(df: pd.DataFrame) -> None:
-    conn = sqlite3.connect(DATABASE_PATH)
-    df.to_sql('messages', conn, index=False, if_exists='replace')
-
-
 def main():
     print('==== Loading data ====')
     print(f'MESSAGES: {MESSAGES_PATH}')
@@ -46,7 +37,7 @@ def main():
 
     print('==== Saving database ====')
     print(f'DATABASE: {DATABASE_PATH}')
-    save_data(df)
+    save_dataframe(df)
 
     print('==== Finished ====')
 

@@ -1,94 +1,85 @@
 import json
-import plotly
+
+from flask import Flask, render_template, request, jsonify
 import pandas as pd
+import plotly
 
-from nltk.stem import WordNetLemmatizer
-from nltk.tokenize import word_tokenize
-
-from flask import Flask
-from flask import render_template, request, jsonify
-from plotly.graph_objs import Bar
-from sklearn.externals import joblib
-from sqlalchemy import create_engine
+from .utils import load_dataframe, load_pickle, tokenize
 
 
 app = Flask(__name__)
 
-def tokenize(text):
-    tokens = word_tokenize(text)
-    lemmatizer = WordNetLemmatizer()
-
-    clean_tokens = []
-    for tok in tokens:
-        clean_tok = lemmatizer.lemmatize(tok).lower().strip()
-        clean_tokens.append(clean_tok)
-
-    return clean_tokens
-
-# load data
-engine = create_engine('sqlite:///../data/YourDatabaseName.db')
-df = pd.read_sql_table('YourTableName', engine)
-
-# load model
-model = joblib.load("../models/your_model_name.pkl")
+df = load_dataframe()
+model = load_pickle()
 
 
-# index webpage displays cool visuals and receives user input text for model
 @app.route('/')
 @app.route('/index')
 def index():
-    
-    # extract data needed for visuals
-    # TODO: Below is an example - modify to extract data for your own visuals
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
-    
-    # create visuals
-    # TODO: Below is an example - modify to create your own visuals
+
+    category_names = list(df.columns[4:])
+    category_counts = df[category_names].sum().values
+
     graphs = [
         {
             'data': [
-                Bar(
+                plotly.graph_objs.Bar(
                     x=genre_names,
                     y=genre_counts
                 )
             ],
-
             'layout': {
                 'title': 'Distribution of Message Genres',
-                'yaxis': {
-                    'title': "Count"
-                },
-                'xaxis': {
-                    'title': "Genre"
-                }
+                'xaxis': {'title': 'Genre'},
+                'yaxis': {'title': 'Count'}
+            }
+        },
+        {
+            'data': [
+                plotly.graph_objs.Bar(
+                    x=category_names,
+                    y=category_counts
+                )
+            ],
+            'layout': {
+                'title': 'Distribution of Message Categories',
+                'xaxis': {'title': 'Category'},
+                'yaxis': {'title': 'Count'}
             }
         }
     ]
-    
-    # encode plotly graphs in JSON
-    ids = ["graph-{}".format(i) for i, _ in enumerate(graphs)]
-    graphJSON = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
-    
-    # render web page with plotly graphs
-    return render_template('master.html', ids=ids, graphJSON=graphJSON)
+
+    ids = ['graph-{}'.format(i) for i, _ in enumerate(graphs)]
+    graph_json = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
+
+    return render_template('master.html', ids=ids, graph_json=graph_json)
 
 
-# web page that handles user query and displays model results
 @app.route('/go')
 def go():
-    # save user input in query
-    query = request.args.get('query', '') 
+    query = request.args.get('query', '')
 
-    # use model to predict classification for query
+    columns = [column.replace('_', ' ').title() for column in df.columns[4:].values]
+
+    print(columns)
+
     classification_labels = model.predict([query])[0]
-    classification_results = dict(zip(df.columns[4:], classification_labels))
 
-    # This will render the go.html Please see that file. 
+    print(classification_labels)
+
+    classification_results = dict(zip(columns, classification_labels))
+
+    print(classification_results.items())
+
+    classification_summary = ', '.join([key for key, value in classification_results.items() if value])
+
     return render_template(
         'go.html',
         query=query,
-        classification_result=classification_results
+        classification_result=classification_results,
+        classification_summary=classification_summary
     )
 
 
