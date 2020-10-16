@@ -23,7 +23,7 @@ def load_data() -> Tuple[pd.Series, pd.Series, List[str]]:
 
 def build_model_prod() -> Pipeline:
     return Pipeline([
-        ('vect', CountVectorizer(tokenizer=tokenize)),
+        ('vect', CountVectorizer(tokenizer=tokenize, max_df=0.5)),
         ('tfidf', TfidfTransformer()),
         ('class', MultiOutputClassifier(KNeighborsClassifier()))
     ])
@@ -31,7 +31,7 @@ def build_model_prod() -> Pipeline:
 
 def build_model() -> GridSearchCV:
     pipeline = Pipeline([
-        ('vect', CountVectorizer(tokenizer=tokenize, max_df=0.5)),
+        ('vect', CountVectorizer(tokenizer=tokenize)),
         ('tfidf', TfidfTransformer()),
         ('class', MultiOutputClassifier(KNeighborsClassifier()))
     ])
@@ -55,7 +55,7 @@ def display_results(model: Union[Pipeline, GridSearchCV], y_test: pd.Series, y_p
     accuracy = (y_pred == y_test).mean().mean()
 
     print(f'{accuracy=}')
-    # print(f'{model.best_params_=}')
+    print(f'{model.best_params_=}')
 
 
 def evaluate_model(model: GridSearchCV, x_test: pd.Series, y_test: pd.Series) -> None:
