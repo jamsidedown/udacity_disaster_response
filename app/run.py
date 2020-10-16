@@ -63,6 +63,9 @@ def go():
     query = request.args.get('query', '')
 
     class_columns = [column.replace('_', ' ').title() for column in df.columns[4:].values]
+    prediction = model.predict([query])
+    print(type(prediction))
+    print(prediction)
     class_labels = model.predict([query])[0]
     class_summary = ', '.join([class_columns[i] for i in range(len(class_columns)) if class_labels[i]])
 
