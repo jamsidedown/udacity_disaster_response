@@ -1,3 +1,5 @@
+import os
+import sys
 from typing import List, Tuple, Union
 
 import numpy as np
@@ -12,8 +14,8 @@ from sklearn.pipeline import Pipeline
 from .utils import DATABASE_PATH, MODEL_PATH, load_dataframe, tokenize, save_pickle
 
 
-def load_data() -> Tuple[pd.Series, pd.Series, List[str]]:
-    df = load_dataframe()
+def load_data(database_path: str) -> Tuple[pd.Series, pd.Series, List[str]]:
+    df = load_dataframe(database_path)
 
     x = df['message']
     y = df[df.columns[4:]]
@@ -21,7 +23,7 @@ def load_data() -> Tuple[pd.Series, pd.Series, List[str]]:
     return x, y
 
 
-def build_model_prod() -> Pipeline:
+def build_model() -> Pipeline:
     return Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize, max_df=0.5)),
         ('tfidf', TfidfTransformer()),
@@ -29,7 +31,7 @@ def build_model_prod() -> Pipeline:
     ])
 
 
-def build_model() -> GridSearchCV:
+def build_model_gridsearch() -> GridSearchCV:
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize)),
         ('tfidf', TfidfTransformer()),
@@ -63,32 +65,32 @@ def evaluate_model(model: GridSearchCV, x_test: pd.Series, y_test: pd.Series) ->
     display_results(model, y_test, y_pred)
 
 
-def main_prod():
+def main(database_path: str = DATABASE_PATH, model_path: str = MODEL_PATH) -> None:
     print('==== Loading data ====')
-    print(f'DATABASE: {DATABASE_PATH}')
-    x, y = load_data()
+    print(f'DATABASE: {database_path}')
+    x, y = load_data(database_path)
 
     print('==== Building model ====')
-    model = build_model_prod()
+    model = build_model()
 
     print('==== Training model ====')
     model.fit(x, y)
 
     print('==== Saving model ====')
-    print(f'MODEL: {MODEL_PATH}')
-    save_pickle(model)
+    print(f'MODEL: {model_path}')
+    save_pickle(model, model_path)
 
     print('==== Finished ====')
 
 
-def main():
+def main_gridsearch(database_path: str = DATABASE_PATH, model_path: str = MODEL_PATH) -> None:
     print('==== Loading data ====')
-    print(f'DATABASE: {DATABASE_PATH}')
-    x, y = load_data()
+    print(f'DATABASE: {database_path}')
+    x, y = load_data(database_path)
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
 
     print('==== Building model ====')
-    model = build_model()
+    model = build_model_gridsearch()
 
     print('==== Training model ====')
     model.fit(x_train, y_train)
@@ -97,11 +99,22 @@ def main():
     evaluate_model(model, x_test, y_test)
 
     print('==== Saving model ====')
-    print(f'MODEL: {MODEL_PATH}')
-    save_pickle(model)
+    print(f'MODEL: {model_path}')
+    save_pickle(model, model_path)
 
     print('==== Finished ====')
 
 
 if __name__ == '__main__':
-    main_prod()
+    gridsearch = os.environ.get('GRIDSEARCH', 'false').casefold() == 'true'
+    kwargs = {}
+
+    if len(sys.argv) == 3:
+        (database, model) = sys.argv[-2:]
+        kwargs['database_path'] = database
+        kwargs['model_path'] = model
+
+    if gridsearch:
+        main_gridsearch(**kwargs)
+    else:
+        main(**kwargs)

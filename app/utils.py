@@ -7,8 +7,7 @@ import nltk
 from nltk import word_tokenize, WordNetLemmatizer
 import pandas as pd
 
-
-nltk.download(['punkt', 'wordnet'])
+nltk.download(['punkt', 'wordnet'], quiet=True)
 
 
 CATEGORIES_PATH = 'data/disaster_categories.csv'
