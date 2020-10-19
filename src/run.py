@@ -1,5 +1,6 @@
 import json
 import math
+from typing import Text
 
 from flask import Flask, render_template, request, jsonify
 import pandas as pd
@@ -16,7 +17,17 @@ model = load_pickle()
 
 @app.route('/')
 @app.route('/index')
-def index():
+def index() -> Text:
+    '''
+    index
+        Serve the index page
+
+    args:
+        None
+
+    returns:
+        Text containing rendered html with graphs
+    '''
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
 
@@ -60,6 +71,16 @@ def index():
 
 @app.route('/go')
 def go():
+    '''
+    go
+        Serve the go page to categorise an input string
+
+    args:
+        None
+
+    returns:
+        Text containing rendered html with categories for input string
+    '''
     query = request.args.get('query', '')
 
     class_columns = [column.replace('_', ' ').title() for column in df.columns[4:].values]
@@ -88,6 +109,16 @@ def go():
 
 
 def main():
+    '''
+    main
+        Run the flask web app
+
+    args:
+        None
+
+    returns:
+        None
+    '''
     app.run(host='0.0.0.0', port=3001, debug=True)
 
 
