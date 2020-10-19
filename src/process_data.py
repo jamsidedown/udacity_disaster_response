@@ -37,16 +37,21 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     returns:
         pandas.DataFrame containing cleaned dataset
     '''
+    # split categories column into a new dataframe
     categories_df = df['categories'].str.split(';', expand=True)
+    # get categories headers from columns
     category_headers = categories_df.iloc[0].apply(lambda x: x[:-2])
     categories_df.columns = category_headers
 
+    # take the last character in each cell and convert it to binary
     for column in categories_df:
         categories_df[column] = categories_df[column].apply(lambda x: int(x[-1]))
 
+    # remove old categories columna and merge in new categories columns
     df = df.drop(columns=['categories'])
     df = pd.concat([df, categories_df], sort=False, axis=1)
 
+    # remove duplicates and return
     return df.drop_duplicates()
 
 
@@ -82,7 +87,9 @@ def main(messages_path: str = MESSAGES_PATH, categories_path: str = CATEGORIES_P
 
 if __name__ == '__main__':
     if len(sys.argv) == 4:
+        # run with paths from args
         (messages, categories, database) = sys.argv[-3:]
         main(messages, categories, database)
     else:
+        # run with default paths
         main()
