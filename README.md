@@ -33,10 +33,16 @@ python -m src.train_classifier
 python -m src.train_classifier data/disaster_response.db models/classifier.pkl
 ```
 
+To run the ML pipeline with GridSearchCV to find the optimal parameters and evaluate the model (this takes a while to run)
+```sh
+export GRIDSEARCH=true
+
+python -m src.train_classifier
+```
+
 To run the webapp using the trained classifier
 ```sh
 python -m src.run
 ```
 and open a web browser at http://localhost:3001
-
 
